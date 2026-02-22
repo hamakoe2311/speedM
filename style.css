@@ -1,0 +1,372 @@
+:root {
+    --bg-color: #111;
+    --panel-bg: #2c2c2c;
+    --accent-blue: #2196F3;
+    --cockpit-blue: #000033;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg-color);
+    color: white;
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* === LED表示エリア === */
+#led-view {
+    width: 100%;
+    height: 18vh;
+    min-height: 120px;
+    background-color: #1a1a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 5px solid #000;
+    position: relative;
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+canvas#led-canvas {
+    background-color: #000;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.9);
+    width: 95%;
+    height: 90%;
+    image-rendering: pixelated;
+    border-radius: 4px;
+}
+
+/* === ダッシュボード === */
+#dashboard {
+    flex: 1;
+    width: 100%;
+    background-color: var(--panel-bg);
+    background-image: radial-gradient(circle at center, #3a3a3a 0%, #2c2c2c 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    position: relative;
+    overflow-y: auto;
+}
+
+#meter-container {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    min-height: 300px;
+}
+
+.meter-style {
+    position: absolute;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.4s, transform 0.4s;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.meter-style.active {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+    z-index: 5;
+}
+
+/* --- Meter 1: White Analog --- */
+.style-white .analog-face {
+    width: min(80vw, 300px);
+    height: min(80vw, 300px);
+    border-radius: 50%;
+    background-color: #fcfcfc;
+    border: 8px solid #333;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.style-white .tick {
+    position: absolute; left: 50%; top: 50%; width: 2px; height: 10px; background: #333; transform-origin: 0 0;
+}
+.style-white .tick.large { width: 4px; height: 15px; background: #000; }
+.style-white .num {
+    position: absolute; transform: translate(-50%, -50%);
+    color: #000; font-family: 'Roboto Condensed', sans-serif; font-weight: bold; font-size: 1.1rem;
+}
+.style-white .needle {
+    position: absolute; left: 50%; top: 50%; width: 4px; height: 45%; background: #d00;
+    transform-origin: 50% 90%;
+    clip-path: polygon(50% 0%, 100% 100%, 50% 90%, 0% 100%);
+}
+.style-white .needle-cap {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 15px; height: 15px; background: #444; border-radius: 50%;
+}
+
+/* --- Meter 2: Black Analog --- */
+.style-black .analog-face {
+    width: min(80vw, 300px);
+    height: min(80vw, 300px);
+    border-radius: 50%;
+    background-color: #1a1a1a;
+    border: 8px solid #555;
+    position: relative;
+    box-shadow: inset 0 0 20px #000;
+}
+.style-black .tick {
+    position: absolute; left: 50%; top: 50%; width: 2px; height: 8px; background: #eee; transform-origin: 0 0;
+}
+.style-black .tick.large { width: 3px; height: 14px; background: #fff; }
+.style-black .num {
+    position: absolute; transform: translate(-50%, -50%);
+    color: #fff; font-family: 'Roboto', sans-serif; font-weight: bold; font-size: 1.1rem;
+}
+.style-black .needle {
+    position: absolute; left: 50%; top: 50%; width: 3px; height: 48%; background: #fff;
+    transform-origin: 50% 90%;
+    box-shadow: 0 0 5px rgba(255,255,255,0.5);
+}
+.style-black .needle-cap {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 12px; height: 12px; background: silver; border-radius: 50%;
+}
+
+/* --- Meter 3: Digital Cockpit (7セグ化修正) --- */
+.style-cockpit {
+    width: 95%; max-width: 600px;
+    height: 300px;
+    background: var(--cockpit-blue);
+    border: 2px solid #334;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0,0,50,0.8);
+}
+.style-cockpit .cockpit-bg {
+    position: absolute; top:0; left:0; width:100%; height:100%;
+    background-image: 
+        linear-gradient(rgba(50, 80, 255, 0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(50, 80, 255, 0.2) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+}
+.cockpit-ui {
+    position: relative; z-index: 2; width: 100%; height: 100%;
+    display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
+}
+.cockpit-status-row {
+    display: flex; gap: 10px; justify-content: flex-start; margin-left: 20px;
+}
+.lamp {
+    width: 40px; height: 30px; border: 2px solid #888;
+    color: #888; font-size: 0.6rem; display: flex; align-items: center; justify-content: center;
+    text-align: center; line-height: 1; background: #000;
+}
+.lamp.active {
+    border-color: #ffeb3b; color: #000; background: #ffeb3b; font-weight: bold;
+    box-shadow: 0 0 10px #ffeb3b;
+}
+.cockpit-bar-area {
+    flex: 1; position: relative; width: 100%;
+}
+.cockpit-bar-area svg {
+    width: 100%; height: 100%;
+    filter: drop-shadow(0 0 5px rgba(255, 165, 0, 0.5));
+}
+.cockpit-bottom {
+    display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px 10px;
+}
+.cockpit-atc {
+    display: flex; flex-direction: column; align-items: center;
+}
+.atc-label { color: #aaa; font-size: 0.8rem; margin-bottom: 2px; }
+.atc-circle {
+    width: 60px; height: 60px; border: 4px solid #fff; border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    color: #fff; 
+    /* ▼ 7セグ化 ▼ */
+    font-family: 'DSEG7 Classic', sans-serif;
+    font-style: italic;
+    font-size: 1.8rem; 
+    font-weight: bold;
+    padding-top: 5px; /* フォントのベースライン調整 */
+}
+.cockpit-speed-box {
+    text-align: right; border: 2px solid #556; padding: 5px 15px; background: rgba(0,0,0,0.5);
+    min-width: 180px; /* 7セグ用に少し広げる */
+}
+.speed-val {
+    /* ▼ 7セグ化 ▼ */
+    font-family: 'DSEG7 Classic', sans-serif;
+    font-style: italic;
+    font-size: 3.5rem; 
+    color: #fff;
+    text-shadow: 0 0 10px #aaf; 
+    line-height: 1;
+    letter-spacing: 2px;
+}
+.speed-label { font-size: 1rem; color: #aaa; margin-right: 5px; font-family: 'Roboto', sans-serif; }
+
+
+/* --- Meter 4: Retro Box (7セグ化調整) --- */
+.style-retro-box {
+    display: flex; justify-content: center; align-items: center;
+}
+.retro-casing {
+    background-color: #f2f2e8; /* ベージュ */
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 
+        5px 5px 15px rgba(0,0,0,0.4),
+        inset 2px 2px 5px rgba(255,255,255,1);
+    transform: perspective(500px) rotateX(2deg);
+    border: 1px solid #d0d0c0;
+}
+.retro-screen {
+    background-color: #101010;
+    width: 280px; height: 140px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 10px #000;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 10px 20px;
+    box-sizing: border-box;
+}
+.retro-label {
+    color: #fff;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 1.2rem;
+    text-align: center;
+    margin-top: 5px;
+    letter-spacing: 2px;
+}
+.retro-val-group {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    width: 100%;
+}
+.retro-num {
+    /* ▼ 7セグ設定（昭和風） ▼ */
+    font-family: 'DSEG7 Classic', sans-serif;
+    font-style: italic; /* わずかに斜体 */
+    font-size: 4.8rem;
+    color: #ff3333;
+    text-shadow: 0 0 15px rgba(255, 50, 50, 0.8);
+    line-height: 1;
+    margin-right: 15px;
+    text-align: right;
+    min-width: 150px;
+    font-weight: normal;
+}
+.retro-unit {
+    color: #fff;
+    font-family: 'Roboto Condensed', sans-serif;
+    font-size: 1.5rem;
+    font-style: italic;
+}
+
+
+/* --- コントロール & ステータス --- */
+#status-bar {
+    font-family: 'Share Tech Mono', monospace;
+    color: #aaa; font-size: 0.9rem; margin-bottom: 5px; text-align: center;
+    display: flex; justify-content: center; gap: 15px;
+}
+.status-item span { color: #fff; font-weight: bold; }
+
+.controls-container {
+    width: 100%; max-width: 450px;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+    margin-top: auto;
+    margin-bottom: 10px;
+    z-index: 20;
+}
+.control-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.control-row:last-child { margin-bottom: 0; }
+
+button {
+    flex: 1; padding: 12px; border: none; border-radius: 6px;
+    font-weight: bold; font-family: 'Roboto', sans-serif; font-size: 0.9rem;
+    color: white; cursor: pointer; position: relative; overflow: hidden;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+    transition: transform 0.1s, filter 0.1s;
+}
+button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.3); filter: brightness(1.2); }
+
+.btn-brake { background: linear-gradient(180deg, #e53935 0%, #c62828 100%); }
+.btn-coast { background: linear-gradient(180deg, #ffb74d 0%, #ef6c00 100%); }
+.btn-accel { background: linear-gradient(180deg, #66bb6a 0%, #2e7d32 100%); }
+.btn-func  { background: linear-gradient(180deg, #42a5f5 0%, #1565c0 100%); }
+.btn-gps   { background: linear-gradient(180deg, #26a69a 0%, #00695c 100%); }
+.btn-sh    { background: linear-gradient(180deg, #ab47bc 0%, #7b1fa2 100%); }
+
+.btn-gps.active { 
+    background: #004d40; border: 2px solid #4db6ac; color: #4db6ac;
+    box-shadow: 0 0 10px #4db6ac;
+}
+
+/* --- 新幹線モード --- */
+#shinkansen-panel {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #000; z-index: 100;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+#shinkansen-panel.active { opacity: 1; pointer-events: auto; }
+
+.sh-screen {
+    width: 95%; height: 65vh; max-width: 800px;
+    border: 4px solid #333; background: #000; position: relative;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+.sh-atc-ring {
+    position: absolute; top: 10%; right: 5%; width: 100px; height: 100px;
+    border-radius: 50%; border: 6px solid #333;
+    display: flex; justify-content: center; align-items: center;
+}
+.sh-atc-ring.signal-green { border-color: #00e676; box-shadow: 0 0 15px #00e676; color: #00e676; }
+.sh-atc-ring.signal-red { border-color: #f44336; box-shadow: 0 0 15px #f44336; color: #f44336; animation: blink 0.5s infinite; }
+@keyframes blink { 50% { opacity: 0.5; } }
+
+.sh-limit-val { font-size: 3rem; font-weight: bold; font-family: 'Roboto Condensed', sans-serif; }
+.sh-msg {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -150%);
+    font-size: 2rem; color: red; font-weight: bold; display: none;
+    border: 2px solid red; padding: 5px 20px; background: rgba(50,0,0,0.8);
+}
+.sh-bar-area {
+    position: absolute; top: 50%; left: 5%; width: 90%; height: 60px;
+    border-bottom: 2px solid #fff;
+}
+.sh-bar {
+    position: absolute; bottom: 2px; left: 0; height: 30px; width: 0%;
+    background: linear-gradient(90deg, #ff9800, #ff5722);
+    transition: width 0.1s linear;
+}
+.sh-marker {
+    position: absolute; bottom: 35px; left: 0%; width: 0; height: 0;
+    border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 18px solid #fff;
+    transform: translateX(-50%);
+}
+.sh-digital-speed {
+    position: absolute; bottom: 5%; right: 5%;
+    font-size: 4rem; color: #fff; font-family: 'DSEG7 Classic', sans-serif;
+}
+#sh-controls-placeholder { position: absolute; bottom: 20px; width: 90%; max-width: 450px; }
