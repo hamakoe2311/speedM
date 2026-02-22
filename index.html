@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Railroad Speedometer Pro</title>
+    
+    <!-- フォント読み込み -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700&family=Roboto:wght@400;700&family=Roboto+Condensed:wght@700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- 7セグメントフォント (DSEG) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css">
+    
+    <!-- CSS読み込み -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="main-container">
+        <!-- LED表示エリア (変更なし) -->
+        <div id="led-view">
+            <canvas id="led-canvas"></canvas>
+        </div>
+
+        <!-- 計器・操作エリア -->
+        <div id="dashboard">
+            
+            <!-- 計器表示エリア -->
+            <div id="meter-container">
+                
+                <!-- Meter 1: White Analog (Default) -->
+                <div class="meter-style style-white active" id="meter-1">
+                    <div class="analog-face" id="analog-face-1">
+                        <div class="needle" id="needle-1"></div>
+                        <div class="needle-cap"></div>
+                    </div>
+                </div>
+
+                <!-- Meter 2: JNR Black Analog -->
+                <div class="meter-style style-black" id="meter-2">
+                    <div class="analog-face" id="analog-face-2">
+                        <div class="needle" id="needle-2"></div>
+                        <div class="needle-cap"></div>
+                    </div>
+                </div>
+
+                <!-- Meter 3: Digital Cockpit (画像2枚目風) -->
+                <div class="meter-style style-cockpit" id="meter-3">
+                    <div class="cockpit-bg"></div>
+                    <div class="cockpit-ui">
+                        <!-- ステータスランプ -->
+                        <div class="cockpit-status-row">
+                            <div class="lamp">準備<br>完了</div>
+                            <div class="lamp active">機器<br>正常</div>
+                            <div class="lamp">電気<br>空調</div>
+                            <div class="lamp">入換</div>
+                        </div>
+
+                        <!-- 速度バー (SVG) -->
+                        <div class="cockpit-bar-area">
+                            <svg viewBox="0 0 600 200" preserveAspectRatio="none">
+                                <!-- 背景トラック -->
+                                <path id="bar-track" d="M10,180 L250,80 L590,80" fill="none" stroke="#333" stroke-width="20" stroke-linecap="butt" />
+                                <!-- メモリ線 (装飾) -->
+                                <g id="bar-ticks" stroke="#fff" stroke-width="2"></g>
+                                <!-- 実際の値 (オレンジのバー) -->
+                                <path id="bar-fill" d="M10,180 L250,80 L590,80" fill="none" stroke="url(#grad1)" stroke-width="16" stroke-linecap="butt" stroke-dasharray="0 1000" />
+                                
+                                <defs>
+                                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" style="stop-color:#ff9800;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#ffeb3b;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+
+                        <!-- デジタル数値 & ATC -->
+                        <div class="cockpit-bottom">
+                            <div class="cockpit-atc">
+                                <span class="atc-label">ATC</span>
+                                <div class="atc-circle" id="cockpit-atc-signal">
+                                    <span id="cockpit-atc-val">270</span>
+                                </div>
+                            </div>
+                            <div class="cockpit-speed-box">
+                                <span class="speed-label">km/h</span>
+                                <span class="speed-val" id="cockpit-speed-val">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meter 4: Retro LED (画像1枚目風) -->
+                <div class="meter-style style-retro-box" id="meter-4">
+                    <div class="retro-casing">
+                        <div class="retro-screen">
+                            <div class="retro-label">只今の速度</div>
+                            <div class="retro-val-group">
+                                <span class="retro-num" id="retro-speed-val">0</span>
+                                <span class="retro-unit">Km/H</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ステータス表示 -->
+            <div id="status-bar">
+                <div class="status-item">MODE: <span id="mode-val">DEMO</span></div>
+                <div class="status-item">NOTCH: <span id="notch-val">N</span></div>
+            </div>
+
+            <!-- 操作パネル -->
+            <div class="controls-container" id="controls">
+                <div class="control-row" id="manual-row">
+                    <button class="btn-brake" id="btn-brake">減速</button>
+                    <button class="btn-coast" id="btn-coast">惰行</button>
+                    <button class="btn-accel" id="btn-accel">加速</button>
+                </div>
+                <div class="control-row">
+                    <button class="btn-gps" id="btn-gps">📡 GPS</button>
+                    <button class="btn-func" id="btn-change">計器切替</button>
+                    <button class="btn-sh" id="btn-shinkansen">🚄 新幹線</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新幹線オーバーレイ -->
+    <div id="shinkansen-panel">
+        <div class="sh-screen">
+            <div class="sh-atc-ring signal-green" id="sh-atc-ring">
+                <span class="sh-limit-val" id="sh-limit-val">270</span>
+            </div>
+            <div class="sh-msg" id="sh-msg">ATC BRAKE</div>
+            <div class="sh-bar-area">
+                <div class="sh-bar" id="sh-bar"></div>
+                <div class="sh-marker" id="sh-marker"></div>
+            </div>
+            <div class="sh-digital-speed" id="sh-val">0</div>
+        </div>
+        <div id="sh-controls-placeholder"></div>
+    </div>
+
+    <!-- JS読み込み -->
+    <script src="main.js"></script>
+</body>
+</html>
